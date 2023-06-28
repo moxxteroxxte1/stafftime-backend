@@ -24,7 +24,7 @@ services:
       - "3000:3000"
     volumes:
       - .:/usr/src/stafftime/backend
-    command: make air
+    command: make run
   pgadmin:
     container_name: pgadmin4_container
     image: dpage/pgadmin4
