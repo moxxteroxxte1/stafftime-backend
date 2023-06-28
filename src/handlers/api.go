@@ -35,7 +35,6 @@ func (s *APIServer) Start() {
 	})
 
 	router.HandleFunc("/auth", s.HandleLogin)
-	router.HandleFunc("/logout", s.HandleLogout)
 
 	protectedRouter := router.PathPrefix("/api").Subrouter()
 	protectedRouter.Use(s.jwtAuthMiddleware)

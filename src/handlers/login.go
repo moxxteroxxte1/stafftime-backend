@@ -70,22 +70,3 @@ func (s *APIServer) login(w http.ResponseWriter, r *http.Request) error {
 	})
 	return WriteJSON(w, http.StatusNoContent, nil)
 }
-
-func (s *APIServer) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		makeHTPPHandler(s.logout)(w, r)
-	case http.MethodGet:
-		makeHTPPHandler(s.logout)(w, r)
-	default:
-		WriteJSON(w, http.StatusUnauthorized, "Unauthorized")
-	}
-}
-
-func (s *APIServer) logout(w http.ResponseWriter, r *http.Request) error {
-	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Expires: time.Now(),
-	})
-	return WriteJSON(w, http.StatusNoContent, nil)
-}
