@@ -2,16 +2,14 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
-
-	"github.com/gorilla/mux"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -35,6 +33,16 @@ func (s *APIServer) Start() {
 	})
 
 	router.HandleFunc("/auth", s.HandleLogin)
+	router.HandleFunc("/uploads/{path:(?:[0-9]+.(?:jpg|jpeg|png|webp))}", func(w http.ResponseWriter, r *http.Request) {
+		buff, err := os.ReadFile(fmt.Sprintf("./uploads/%s", mux.Vars(r)["path"]))
+		if err != nil {
+			http.Error(w, "404 page not found", http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "image/png")
+		w.Write(buff)
+	}).Methods(http.MethodGet)
 
 	protectedRouter := router.PathPrefix("/api").Subrouter()
 	protectedRouter.Use(s.jwtAuthMiddleware)
@@ -42,6 +50,8 @@ func (s *APIServer) Start() {
 
 	protectedRouter.HandleFunc("/users", s.handleUsers)
 	protectedRouter.HandleFunc("/users/{userID}", s.HandleUserByID)
+	protectedRouter.HandleFunc("/users/{userID}/upload", s.HandleUserUpload)
+	protectedRouter.HandleFunc("/users/{userID}/image", s.HandleUserUpload)
 
 	protectedRouter.HandleFunc("/users/{userID}/shifts", s.HandleShiftByUserID)
 	protectedRouter.HandleFunc("/users/{userID}/shifts/{shiftID}", s.HandleShiftByID)
