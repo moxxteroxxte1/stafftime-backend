@@ -3,9 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -15,28 +13,6 @@ import (
 // GET/POST/PUT/DELETE ALL
 
 func (s *APIServer) handleContracts(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("token")
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	token, tokenErr := jwt.Parse(c.Value, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-	if tokenErr != nil {
-		if tokenErr == jwt.ErrSignatureInvalid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); !ok || !claims["IsAdmin"].(bool) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		makeHTPPHandler(s.GetAllContracts)(w, r)
@@ -98,33 +74,6 @@ func (s *APIServer) DeleteAllContracts(w http.ResponseWriter, r *http.Request) e
 // GET/PUT/DELETE BY USER
 
 func (s *APIServer) HandleContractByUserID(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("token")
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	token, tokenErr := jwt.Parse(c.Value, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-	if tokenErr != nil {
-		if tokenErr == jwt.ErrSignatureInvalid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	id, convErr := strconv.ParseUint(mux.Vars(r)["userID"], 10, 32)
-	if convErr != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if claims, ok := token.Claims.(jwt.MapClaims); !ok || (!claims["IsAdmin"].(bool) && uint(claims["UserID"].(float64)) != uint(id)) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		makeHTPPHandler(s.GetContractsByUserID)(w, r)
@@ -206,28 +155,6 @@ func (s *APIServer) DeleteContractByUserID(w http.ResponseWriter, r *http.Reques
 // GET/PULL/DELETE BY ID
 
 func (s *APIServer) HandleContractByID(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("token")
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	token, tokenErr := jwt.Parse(c.Value, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-	if tokenErr != nil {
-		if tokenErr == jwt.ErrSignatureInvalid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); !ok || !claims["IsAdmin"].(bool) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		makeHTPPHandler(s.GetContractByID)(w, r)

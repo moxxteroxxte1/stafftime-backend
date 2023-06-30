@@ -38,6 +38,7 @@ func (s *APIServer) Start() {
 
 	protectedRouter := router.PathPrefix("/api").Subrouter()
 	protectedRouter.Use(s.jwtAuthMiddleware)
+	protectedRouter.Use(s.rbacMiddleware)
 
 	protectedRouter.HandleFunc("/users", s.handleUsers)
 	protectedRouter.HandleFunc("/users/{userID}", s.HandleUserByID)

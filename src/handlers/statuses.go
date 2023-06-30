@@ -3,37 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"github.com/moxxteroxxte1/stafftime-backend/src/models"
 	"log"
 	"net/http"
-	"os"
 )
 
 func (s *APIServer) handleStatus(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("token")
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	token, tokenErr := jwt.Parse(c.Value, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-	if tokenErr != nil {
-		if tokenErr == jwt.ErrSignatureInvalid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); !ok || !claims["IsAdmin"].(bool) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		makeHTPPHandler(s.GetAllStatuses)(w, r)
@@ -98,28 +74,6 @@ func (s *APIServer) DeleteAllStatuses(w http.ResponseWriter, r *http.Request) er
 }
 
 func (s *APIServer) HandleStatusByID(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("token")
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	token, tokenErr := jwt.Parse(c.Value, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-	if tokenErr != nil {
-		if tokenErr == jwt.ErrSignatureInvalid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); !ok || !claims["IsAdmin"].(bool) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		makeHTPPHandler(s.GetStatusByID)(w, r)
