@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/moxxteroxxte1/stafftime-backend/src/models"
 	"log"
@@ -34,6 +35,13 @@ func (s *APIServer) CreateKey(w http.ResponseWriter, r *http.Request) error {
 	key := new(models.Key)
 	if err := json.NewDecoder(r.Body).Decode(key); err != nil {
 		return WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failed to decode key: %s", err)})
+	}
+
+	id := uuid.New()
+	data := []byte(fmt.Sprintf(`{"key": "%s"}`, id.String()))
+	jsonErr := json.Unmarshal(data, &key)
+	if jsonErr != nil {
+		return WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to create token: %s", jsonErr)})
 	}
 
 	result := s.database.Create(&key)

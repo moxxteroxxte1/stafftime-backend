@@ -12,4 +12,5 @@ type User struct {
 	Email     string `json:"email,omitempty" gorm:"text, default null"`
 	Password  string `json:"password,omitempty" gorm:"text,not null,default null"`
 	IsAdmin   bool   `json:"isAdmin,omitempty" gorm:"default false"`
+	ImgUrl    string `json:"imageUrl" gorm:"not null,default:/avatar.png"`
 }

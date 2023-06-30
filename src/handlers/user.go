@@ -6,8 +6,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/moxxteroxxte1/stafftime-backend/src/models"
 	"golang.org/x/crypto/bcrypt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 func (s *APIServer) handleUsers(w http.ResponseWriter, r *http.Request) {
@@ -153,4 +156,76 @@ func (s *APIServer) DeleteUserByID(w http.ResponseWriter, r *http.Request) error
 		return WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to delete all users: %s", result.Error)})
 	}
 	return WriteJSON(w, http.StatusNoContent, nil)
+}
+
+func (s *APIServer) HandleUserUpload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid method %s", r.Method)})
+	}
+	makeHTPPHandler(s.UploadImage)(w, r)
+}
+
+func (s *APIServer) UploadImage(w http.ResponseWriter, r *http.Request) error {
+	if err := r.ParseMultipartForm(32); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+	// Get a reference to the fileHeaders.
+	// They are accessible only after ParseMultipartForm is called
+	files := r.MultipartForm.File["file"]
+	var http_status int = http.StatusOK
+	var path string
+	for _, fileHeader := range files {
+		// Open the file
+		file, err := fileHeader.Open()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+		defer file.Close()
+		buff := make([]byte, 512)
+		_, err = file.Read(buff)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+		// checking the content type
+		// so we don't allow files other than images
+		filetype := http.DetectContentType(buff)
+		if filetype != "image/jpeg" && filetype != "image/png" && filetype != "image/jpg" && filetype != "image/webp" {
+			http.Error(w, "The provided file format is not allowed. Please upload a JPEG,JPG or PNG image", http.StatusBadRequest)
+			break
+		}
+		_, err = file.Seek(0, io.SeekStart)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+		err = os.MkdirAll("./uploads", os.ModePerm)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+		path = fmt.Sprintf("./uploads/%s%s", mux.Vars(r)["userID"], filepath.Ext(fileHeader.Filename))
+		f, err := os.Create(path)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			break
+		}
+		defer func(f *os.File) {
+			err := f.Close()
+			if err != nil {
+
+			}
+		}(f)
+		_, err = io.Copy(f, file)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			break
+		}
+	}
+
+	s.database.Model(&models.User{}).Where("id = ?", mux.Vars(r)["userID"]).Update("img_url", path[1:])
+
+	return WriteJSON(w, http_status, map[string]string{"filepath": path})
 }
