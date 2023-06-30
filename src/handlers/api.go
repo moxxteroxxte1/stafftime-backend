@@ -64,6 +64,9 @@ func (s *APIServer) Start() {
 	protectedRouter.HandleFunc("/statuses", s.handleStatus)
 	protectedRouter.HandleFunc("/statuses/{statusID}", s.HandleStatusByID)
 
+	protectedRouter.HandleFunc("/keys", s.handleKeys)
+	protectedRouter.HandleFunc("/keys/{keyID}", s.HandleKeysByID)
+
 	log.Printf("connecting to database")
 	s.database = Connect()
 
@@ -89,7 +92,7 @@ func Connect() *gorm.DB {
 	fmt.Println("connected!")
 
 	fmt.Println("migrating models")
-	db.AutoMigrate(&models.Contract{}, &models.Payment{}, &models.Shift{}, &models.Status{}, &models.User{})
+	db.AutoMigrate(&models.Contract{}, &models.Payment{}, &models.Shift{}, &models.Status{}, &models.User{}, &models.Key{})
 
 	var user = new(models.User)
 	if userErr := db.First(&user).Error; userErr != nil {

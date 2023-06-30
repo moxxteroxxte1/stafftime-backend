@@ -29,16 +29,19 @@ func (s *APIServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) login(w http.ResponseWriter, r *http.Request) error {
 	var req types.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		resetCookie(w)
 		return WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to decode request: %s", err)})
 	}
 
 	user := new(models.User)
 	var result = s.database.Where("username = ?", req.Username).First(&user)
 	if result.Error != nil {
+		resetCookie(w)
 		return WriteJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("failed to decode users: %s", result.Error)})
 	}
 
 	if !(bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)) == nil) {
+		resetCookie(w)
 		return WriteJSON(w, http.StatusUnauthorized, "401 Unauthorized")
 	}
 
@@ -60,6 +63,7 @@ func (s *APIServer) login(w http.ResponseWriter, r *http.Request) error {
 
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
+		resetCookie(w)
 		return WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to create token: %s", err)})
 	}
 
@@ -69,4 +73,11 @@ func (s *APIServer) login(w http.ResponseWriter, r *http.Request) error {
 		Expires: expirationTime,
 	})
 	return WriteJSON(w, http.StatusNoContent, nil)
+}
+
+func resetCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:    "token",
+		Expires: time.Now(),
+	})
 }

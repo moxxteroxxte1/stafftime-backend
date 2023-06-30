@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/moxxteroxxte1/stafftime-backend/src/models"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -11,6 +12,18 @@ import (
 
 func (s *APIServer) jwtAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Has("key") {
+			key := models.Key{}
+			s.database.Where(&models.Key{Key: r.URL.Query().Get("key")}).First(&key)
+			log.Println(key.ExpiresAt)
+			if key.ExpiresAt.Before(time.Now()) {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		c, err := r.Cookie("token")
 		if err != nil {
 			if err == http.ErrNoCookie {
