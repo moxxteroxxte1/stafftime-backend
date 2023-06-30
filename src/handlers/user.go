@@ -225,7 +225,7 @@ func (s *APIServer) UploadImage(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	s.database.Model(&models.User{}).Where("id = ?", mux.Vars(r)["userID"]).Update("img_url", path)
+	s.database.Model(&models.User{}).Where("id = ?", mux.Vars(r)["userID"]).Update("img_url", path[1:])
 
 	return WriteJSON(w, http_status, map[string]string{"filepath": path})
 }
