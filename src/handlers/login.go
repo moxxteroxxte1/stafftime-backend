@@ -72,7 +72,7 @@ func (s *APIServer) login(w http.ResponseWriter, r *http.Request) error {
 		Value:   tokenString,
 		Expires: expirationTime,
 	})
-	return WriteJSON(w, http.StatusNoContent, nil)
+	return WriteJSON(w, http.StatusOK, types.LoginResponse{UserID: user.ID, IsAdmin: user.IsAdmin})
 }
 
 func resetCookie(w http.ResponseWriter) {
