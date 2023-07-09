@@ -3,11 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"strconv"
-
 	"github.com/gorilla/mux"
 	"github.com/moxxteroxxte1/stafftime-backend/src/models"
+	"net/http"
+	"strconv"
 )
 
 // GET/POST/PUT/DELETE ALL
@@ -23,7 +22,10 @@ func (s *APIServer) handleShifts(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		makeHTPPHandler(s.DeleteAllShifts)(w, r)
 	default:
-		WriteJSON(w, http.StatusOK, map[string]string{"message": "/payments"})
+		err := WriteJSON(w, http.StatusOK, map[string]string{"message": "/payments"})
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -37,6 +39,13 @@ func (s *APIServer) CreateShift(w http.ResponseWriter, r *http.Request) error {
 	shift := new(models.Shift)
 	if err := json.NewDecoder(r.Body).Decode(shift); err != nil {
 		return WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failed to decode shift: %s", err)})
+	}
+
+	diff := shift.EndTime.Sub(shift.StartTime).Hours()
+	data := []byte(fmt.Sprintf(`{"hours": %f}`, diff))
+	jsonErr := json.Unmarshal(data, &shift)
+	if jsonErr != nil {
+		return WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to create token: %s", jsonErr)})
 	}
 
 	result := s.database.Create(&shift)
@@ -84,7 +93,10 @@ func (s *APIServer) HandleShiftByUserID(w http.ResponseWriter, r *http.Request) 
 	case http.MethodDelete:
 		makeHTPPHandler(s.DeleteShiftByUserID)(w, r)
 	default:
-		WriteJSON(w, http.StatusOK, map[string]string{"message": "/user/{id}/payments"})
+		err := WriteJSON(w, http.StatusOK, map[string]string{"message": "/user/{id}/payments"})
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -103,20 +115,22 @@ func (s *APIServer) GetShiftByUserID(w http.ResponseWriter, r *http.Request) err
 func (s *APIServer) CreateShifByUserID(w http.ResponseWriter, r *http.Request) error {
 	shift := new(models.Shift)
 
+	if err1 := json.NewDecoder(r.Body).Decode(shift); err1 != nil {
+		return WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failed to decode shift: %s", err1)})
+	}
+
 	i := mux.Vars(r)["userID"]
 	userID, err := strconv.Atoi(i)
 	if err != nil {
 		return WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to create shift: %s", err)})
 	}
 
-	data := []byte(fmt.Sprintf(`{"userID": %d}`, uint(userID)))
+	diff := shift.EndTime.Sub(shift.StartTime).Hours()
+
+	data := []byte(fmt.Sprintf(`{"userID": %d, "hours": %f}`, uint(userID), diff))
 	jsonErr := json.Unmarshal(data, &shift)
 	if jsonErr != nil {
 		return WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to create shift: %s", jsonErr)})
-	}
-
-	if err1 := json.NewDecoder(r.Body).Decode(shift); err1 != nil {
-		return WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failed to decode shift: %s", err1)})
 	}
 
 	result := s.database.Create(&shift)
@@ -159,13 +173,19 @@ func (s *APIServer) HandleShiftByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		makeHTPPHandler(s.GetShiftByID)(w, r)
 	case http.MethodPost:
-		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid method %s", r.Method)})
+		err := WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid method %s", r.Method)})
+		if err != nil {
+			return
+		}
 	case http.MethodPut:
 		makeHTPPHandler(s.UpdateShiftByID)(w, r)
 	case http.MethodDelete:
 		makeHTPPHandler(s.DeleteShiftByID)(w, r)
 	default:
-		WriteJSON(w, http.StatusOK, map[string]string{"message": "/shifts/{id}"})
+		err := WriteJSON(w, http.StatusOK, map[string]string{"message": "/shifts/{id}"})
+		if err != nil {
+			return
+		}
 	}
 }
 
